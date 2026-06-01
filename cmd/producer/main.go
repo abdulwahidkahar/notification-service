@@ -11,7 +11,7 @@ import (
 	"github.com/google/uuid"
 )
 
-const totalMessages = 1000
+const totalMessages = 2
 
 func main() {
 	ctx := context.Background()

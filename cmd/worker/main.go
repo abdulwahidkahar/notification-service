@@ -11,13 +11,25 @@ import (
 	"time"
 
 	"github.com/abdulwahidkahar/notification-service/internal/model"
+	"github.com/abdulwahidkahar/notification-service/internal/notification"
 	"github.com/abdulwahidkahar/notification-service/internal/queue"
+	"github.com/joho/godotenv"
 	"github.com/redis/go-redis/v9"
 )
 
 func main() {
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+
+	if err := godotenv.Load(); err != nil {
+		log.Fatal("gagal load .env")
+	}
+
+	emailCfg, err := notification.NewEmailConfig()
+	if err != nil {
+		log.Fatalf("gagal init email config: %v", err)
+	}
 
 	rdb := queue.NewRedisClient()
 	defer rdb.Close()
@@ -61,7 +73,7 @@ func main() {
 			}
 
 			for _, msg := range messages {
-				err := process(ctx, rdb, msg)
+				err := process(ctx, rdb, msg, emailCfg)
 				if err != nil {
 					payload, _ := msg.Values["payload"].(string)
 					var event model.NotificationEvent
@@ -105,7 +117,7 @@ func main() {
 	}
 }
 
-func process(ctx context.Context, rdb *redis.Client, msg redis.XMessage) error {
+func process(ctx context.Context, rdb *redis.Client, msg redis.XMessage, emailCfg *notification.EmailConfig) error {
 	payload, ok := msg.Values["payload"].(string)
 	if !ok {
 		return fmt.Errorf("invalid payload format")
@@ -116,6 +128,24 @@ func process(ctx context.Context, rdb *redis.Client, msg redis.XMessage) error {
 		return fmt.Errorf("gagal unmarshal: %w", err)
 	}
 
-	_ = event
+	to := os.Getenv("SMTP_TO")
+
+	var subject, body string
+	switch event.Type {
+	case model.EventTransferSuccess:
+		subject = "Transfer Berhasil"
+		body = fmt.Sprintf("<h2>Transfer Berhasil</h2><p>User <b>%s</b> melakukan transfer sebesar <b>Rp%d</b>.</p>", event.UserID, event.Amount)
+	case model.EventTopUpConfirmed:
+		subject = "Top Up Dikonfirmasi"
+		body = fmt.Sprintf("<h2>Top Up Dikonfirmasi</h2><p>User <b>%s</b> melakukan top up sebesar <b>Rp%d</b>.</p>", event.UserID, event.Amount)
+	default:
+		return fmt.Errorf("unknown event type: %s", event.Type)
+	}
+
+	if err := emailCfg.Send(to, subject, body); err != nil {
+		return err
+	}
+
+	log.Printf("[EMAIL SENT] %s → %s | user: %s", event.Type, to, event.UserID)
 	return nil
 }
