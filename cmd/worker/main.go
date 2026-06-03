@@ -23,7 +23,7 @@ func main() {
 	defer cancel()
 
 	if err := godotenv.Load(); err != nil {
-		log.Fatal("gagal load .env")
+		log.Println("no .env file, using environment variables")
 	}
 
 	emailCfg, err := notification.NewEmailConfig()
