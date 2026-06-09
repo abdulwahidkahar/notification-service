@@ -90,6 +90,13 @@ func main() {
 								event.RetryCount, event.UserID, event.LastError)
 						}
 					} else {
+						backoff := time.Duration(1<<uint(event.RetryCount-1)) * time.Second
+
+						log.Printf("[RETRY %d/%d] tunggu %v — user: %s | error: %s",
+							event.RetryCount, model.MaxRetry, backoff, event.UserID, event.LastError)
+
+						time.Sleep(backoff)
+
 						if _, retryErr := queue.Publish(ctx, rdb, event); retryErr != nil {
 							log.Printf("gagal retry: %v", retryErr)
 						} else {
