@@ -63,6 +63,25 @@ Setelah worker aktif, jalankan producer lagi:
 go run ./cmd/producer
 ```
 
+## RabbitMQ development tools
+
+Folder `cmd/rabbitmq-producer` adalah simulation tool untuk kebutuhan development.
+Command ini hanya dipakai untuk mengirim event dummy ke RabbitMQ agar alur worker bisa dites secara lokal.
+
+Kode ini bukan production code. Pada environment production, event seharusnya dikirim oleh service utama atau backend aplikasi setelah business event benar-benar terjadi, bukan dari simulator ini.
+
+Untuk menjalankan simulasi publish event RabbitMQ:
+
+```bash
+go run ./cmd/rabbitmq-producer
+```
+
+Untuk menjalankan RabbitMQ worker:
+
+```bash
+go run ./cmd/rabbitmq-worker
+```
+
 ## stream yang digunakan
 
 - `notification:events`: stream utama untuk event notifikasi
@@ -76,6 +95,10 @@ go run ./cmd/producer
 ├── cmd
 │   ├── producer
 │   │   └── main.go
+│   ├── rabbitmq-producer
+│   │   └── main.go
+│   ├── rabbitmq-worker
+│   │   └── main.go
 │   └── worker
 │       └── main.go
 ├── internal
@@ -84,6 +107,7 @@ go run ./cmd/producer
 │   └── queue
 │       ├── consumer.go
 │       ├── producer.go
+│       ├── rabbitmq.go
 │       └── redis.go
 ├── docker-compose.yaml
 ├── go.mod
