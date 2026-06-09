@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -60,22 +59,14 @@ func main() {
 			}
 
 			to := os.Getenv("SMTP_TO")
-			var subject, body string
-
-			switch event.Type {
-			case model.EventTransferSuccess:
-				subject = "Transfer Berhasil"
-				body = fmt.Sprintf("<h2>Transfer Berhasil</h2><p>User <b>%s</b> melakukan transfer sebesar <b>Rp%d</b>.</p>", event.UserID, event.Amount)
-			case model.EventTopUpConfirmed:
-				subject = "Top Up Dikonfirmasi"
-				body = fmt.Sprintf("<h2>Top Up Dikonfirmasi</h2><p>User <b>%s</b> melakukan top up sebesar <b>Rp%d</b>.</p>", event.UserID, event.Amount)
-			default:
-				log.Printf("unknown event type: %s", event.Type)
+			content, err := notification.BuildEmailContent(event)
+			if err != nil {
+				log.Print(err)
 				msg.Ack(false)
 				continue
 			}
 
-			if err := emailCfg.Send(to, subject, body); err != nil {
+			if err := emailCfg.Send(to, content.Subject, content.Body); err != nil {
 				log.Printf("gagal kirim email: %v", err)
 				msg.Nack(false, true) // requeue — coba lagi nanti
 				continue
